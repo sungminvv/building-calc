@@ -6,139 +6,248 @@
     <title>성민Kim의 빌딩찾기 - 보안 분석기</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* 원본 스타일 그대로 유지 */
         :root { --primary-color: #1a365d; --secondary-color: #f7fafc; --accent-color: #2b6cb0; --success-color: #48bb78; --danger-color: #e53e3e; --text-color: #2d3748; --border-color: #e2e8f0; }
-        body { font-family: 'Pretendard', -apple-system, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: var(--text-color); }
-        .header { background-color: var(--primary-color); color: white; padding: 1.5rem 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; }
+        body { font-family: 'Pretendard', sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: var(--text-color); }
+        .header { background-color: var(--primary-color); color: white; padding: 1.5rem 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+        .header-logo { max-height: 80px; width: auto; padding: 5px; object-fit: contain; }
         .header h1 { margin: 0; font-size: 1.6rem; font-weight: 700; }
         .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
-        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } .header { flex-direction: column; text-align: center; } }
         .card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .section-title { font-size: 1.2rem; font-weight: 700; color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
+        .sub-title { font-size: 1rem; font-weight: 700; color: var(--accent-color); margin-top: 30px; margin-bottom: 10px; padding-left: 8px; border-left: 4px solid var(--accent-color); background: #edf2f7; padding: 8px; border-radius: 0 4px 4px 0; }
         .input-group { margin-bottom: 12px; }
         .input-group label { display: block; font-size: 0.9rem; margin-bottom: 5px; font-weight: 600; color: #4a5568; }
         .input-group input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; box-sizing: border-box; text-align: right; }
-        .input-row { display: flex; gap: 10px; }
+        .input-row { display: flex; gap: 10px; } .input-row .input-group { flex: 1; }
         .schedule-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95rem; }
         .schedule-table td { padding: 10px 5px; border-bottom: 1px solid #eee; vertical-align: middle; }
-        .schedule-table .value-col { text-align: right; font-weight: 600; }
-        .plus { color: var(--primary-color); } .minus { color: var(--danger-color); }
-        
-        /* 서버 계산 버튼 스타일 */
-        .server-btn {
-            background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%);
-            color: white; border: none; padding: 20px; border-radius: 12px;
-            width: 100%; font-size: 1.3rem; font-weight: 800; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(26, 54, 93, 0.3);
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 10px;
-        }
-        .server-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(26, 54, 93, 0.4); }
-        .server-btn:active { transform: translateY(1px); }
-        
-        /* 로딩 스피너 */
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #fff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: none; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
+        .schedule-table .value-col { text-align: right; font-weight: 600; color: #2d3748; }
+        .plus { color: var(--primary-color); font-weight: bold; } .minus { color: var(--danger-color); font-weight: bold; }
+        .total-row { background-color: #ebf8ff; border-top: 2px solid var(--accent-color); }
+        .total-row td { color: var(--primary-color); font-weight: 800; font-size: 1.1rem; padding: 15px 5px; }
+        .summary-input { width: 120px; padding: 5px; border: 1px solid #cbd5e0; border-radius: 4px; text-align: right; font-weight: bold; }
+        .apply-btn { background-color: #718096; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; margin-left: 5px; }
+        .unit-badge { font-size: 0.75rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; color: #4a5568; margin-left: 5px; }
+        .summary-card { background-color: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
         .final-result-card { background-color: #ebf8ff; border: 2px solid var(--accent-color); border-radius: 12px; padding: 20px; text-align: center; }
         .final-value { color: var(--primary-color); font-size: 2rem; font-weight: 800; margin-bottom: 10px; }
-        .roi-badge { background: var(--success-color); color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 1.1rem; display: inline-block; margin-top: 10px;}
+        .roi-badge { display: inline-block; background: var(--success-color); color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 1.1rem; margin-top: 10px; }
+        
+        /* 서버 실행 버튼 스타일 (추가됨) */
+        .server-btn {
+            background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%);
+            color: white; border: none; padding: 15px; border-radius: 8px;
+            width: 100%; font-size: 1.2rem; font-weight: 800; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(26, 54, 93, 0.3); margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        .server-btn:hover { transform: translateY(-2px); }
+        .loader { display:inline-block; border: 3px solid #f3f3f3; border-top: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; margin-right: 10px; vertical-align: middle; display: none;}
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* LTV 계산기 등 부가 스타일 */
+        .ltv-calculator { background-color: #f0f4f8; padding: 8px; border-radius: 6px; margin-top: 5px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; font-size: 0.85rem; color: #4a5568; }
+        .ltv-calculator input { border: 1px solid #cbd5e0; border-radius: 4px; padding: 4px; text-align: right; font-size: 0.9rem; }
+        .rate-buttons { display: flex; gap: 4px; margin-top: 5px; }
+        .rate-buttons button { flex: 1; padding: 6px 2px; font-size: 0.8rem; border: 1px solid #cbd5e0; background-color: #fff; border-radius: 4px; cursor: pointer; }
+        .revenue-total-box { text-align: right; font-size: 1.1rem; font-weight: bold; margin-top: 15px; padding: 12px; background-color: #ebf8ff; border-radius: 6px; color: #2c5282; border: 1px solid #bee3f8; }
+        .cost-total-box { text-align: right; font-size: 1.1rem; font-weight: bold; margin-top: 15px; padding: 12px; background-color: #fff5f5; border-radius: 6px; color: #c53030; border: 1px solid #fed7d7; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>성민Kim의 빌딩찾기 - 보안 분석기</h1>
-        <p style="opacity:0.8;">Server-Side Secure Calculation</p>
-    </div>
+        <div class="header-title-group">
+            <h1>성민Kim의 빌딩찾기 - 보안 분석기</h1>
+            <p>Server-Side Calculation Protected</p>
+        </div>
+        </div>
 
     <div class="container">
         <div class="input-section">
             
             <button class="server-btn" onclick="callServer()">
-                <div class="loader" id="spinner"></div>
-                <span id="btnText">🚀 서버 정밀 분석 실행</span>
+                <span class="loader" id="spinner"></span>
+                <span id="btnText">🚀 서버 정밀 분석 실행 (Click)</span>
             </button>
 
             <div class="card">
                 <h3 class="section-title">1. 자금 스케줄 (단위: 만원)</h3>
-                <div class="input-group"> <label>매매가</label> <input type="text" id="price" value="350,000" oninput="formatInput(this)"> </div>
+                <div class="input-group">
+                    <label>매매가 <span class="unit-badge">만원</span></label>
+                    <input type="text" id="price" value="350,000" oninput="formatInput(this)"> 
+                </div>
 
+                <div class="sub-title">1-1. 상세 내역 자동 계산</div>
                 <table class="schedule-table">
-                    <tr> <td colspan="2"><span class="minus">➖</span> 매매 대출금 <input type="text" id="loan" value="200,000" oninput="formatInput(this)" style="color:#e53e3e; font-weight:bold; width:100%; margin-top:5px;"></td> </tr>
+                    <tr> <td class="label-col"><span class="plus">➕</span> 매매가</td> <td class="value-col" id="dispPrice">350,000</td> </tr>
+                    <tr> 
+                        <td class="label-col"><span class="minus">➖</span> 매매 대출금</td> 
+                        <td class="value-col"><input type="text" id="loan" value="200,000" oninput="formatInput(this)" style="color:#e53e3e; font-weight:bold;"></td> 
+                    </tr>
                     <tr>
-                        <td colspan="2" style="background:#fafafa; padding:10px;">
-                            <div class="input-row">
-                                <div class="input-group"> <input type="number" id="areaPyeong" value="100" placeholder="평"> </div>
-                                <div class="input-group"> <input type="text" id="constPerPyeong" value="500" placeholder="평당단가" oninput="formatInput(this)"> </div>
+                        <td colspan="2" style="padding:0 5px 10px 5px;">
+                            <div class="ltv-calculator">
+                                <span>기준:</span> <input type="text" id="loanBase" value="350,000" style="width:90px;" oninput="formatInput(this)"> 
+                                <span>x</span> <input type="number" id="loanPercent" placeholder="%" style="width:50px;" oninput="calcLoanHelper()"> 
+                                <span>% = </span> <span style="font-weight:bold; color:#2b6cb0;" id="calcLoanPreview">0</span>
                             </div>
-                            <div style="text-align:right; font-weight:bold; color:#2d3748;"> = 건축비 <span id="dispConstCost">50,000</span> 만원 (예상)</div>
                         </td>
                     </tr>
-                    <tr> <td colspan="2"><span class="minus">➖</span> 건축 대출금 <input type="text" id="constLoan" value="30,000" oninput="formatInput(this)" style="color:#e53e3e; font-weight:bold; width:100%; margin-top:5px;"></td> </tr>
-                    <tr> <td><span class="plus">➕</span> 취득세율(%)</td> <td class="value-col"><input type="number" id="taxRate" value="4.6" style="width:60px;">%</td> </tr>
-                    <tr> <td><span class="plus">➕</span> 취득세 예상</td> <td class="value-col" id="dispTax">16,100</td> </tr>
-                    <tr> <td><span class="plus">➕</span> 등기/중개비</td> <td class="value-col"><span id="dispRegFee">700</span> / <span id="dispBrokerFee">3,150</span></td> </tr>
-                    <tr> <td colspan="2"><span class="minus">➖</span> 보증금 (회수) <input type="text" id="deposit" value="10,000" oninput="formatInput(this)" style="color:#e53e3e; font-weight:bold; width:100%; margin-top:5px;"></td> </tr>
+                    
+                    <tr>
+                        <td colspan="2" style="background:#fafafa; padding:10px; border-radius:6px;">
+                            <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                                <span class="plus">➕</span> <strong>건축/리모델링비</strong>
+                            </div>
+                            <div class="input-row" style="margin:0;">
+                                <div class="input-group" style="margin:0;">
+                                    <input type="number" id="areaPyeong" value="100" placeholder="평">
+                                    <div style="font-size:0.75rem; text-align:right; color:#718096;">연면적(평)</div>
+                                </div>
+                                <div class="input-group" style="margin:0;">
+                                    <input type="text" id="constPerPyeong" value="500" placeholder="단가" oninput="formatInput(this)">
+                                    <div style="font-size:0.75rem; text-align:right; color:#718096;">평당(만)</div>
+                                </div>
+                            </div>
+                            <div style="text-align:right; font-weight:bold; margin-top:5px; color:#2d3748;">
+                                = <span id="dispConstCost">50,000</span> 만원
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr style="background-color:#fff5f5;">
+                        <td class="label-col"><span class="minus">➖</span> <strong>건축 대출금</strong></td>
+                        <td class="value-col"><input type="text" id="constLoan" value="30,000" oninput="formatInput(this)" style="color:#e53e3e; font-weight:bold;"></td>
+                    </tr>
+                    
+                    <tr> <td class="label-col"><span class="plus">➕</span> 취득세 <input type="number" id="taxRate" value="4.6" step="0.1" style="width:50px;">%</td> <td class="value-col" id="dispTax">16,100</td> </tr>
+                    <tr> <td class="label-col"><span class="plus">➕</span> 등기비 (0.2%)</td> <td class="value-col" id="dispRegFee">700</td> </tr>
+                    <tr> <td class="label-col"><span class="plus">➕</span> 중개비 (0.9%)</td> <td class="value-col" id="dispBrokerFee">3,150</td> </tr>
+                    <tr> <td class="label-col"><span class="minus">➖</span> 보증금 (회수)</td> <td class="value-col"><input type="text" id="deposit" value="10,000" oninput="formatInput(this)" style="color:#e53e3e; font-weight:bold;"></td> </tr>
                 </table>
-                
-                <div style="margin-top:15px; background:var(--primary-color); color:white; padding:15px; border-radius:8px; display:flex; justify-content:space-between;">
-                    <span style="font-weight:bold;">💰 실투자금 (Total)</span>
-                    <strong id="dispTotalInvest" style="font-size:1.4rem; color:#ffeb3b;">0 만원</strong>
+
+                <div style="margin-top: 15px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background-color:#edf2f7; border-radius:8px; color:#4a5568; font-size:0.95rem;">
+                        <span>🏗️ 총 사업비용</span> <strong id="dispTotalProjectCostSection1" style="font-size:1.1rem; color:#2d3748;">0 만원</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background-color:var(--primary-color); border-radius:8px; color:white; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                        <span style="font-weight:600; font-size:1.1rem;">💰 실투자금 (Total)</span> <strong id="dispTotalInvest" style="font-size:1.6rem; color:#ffeb3b;">0 만원</strong>
+                    </div>
                 </div>
+
+                <div class="sub-title">1-2. 예상 자금계획 (월 단위)</div>
+                <table class="schedule-table summary-table" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                    <tr>
+                        <td class="label-col" style="vertical-align:top; padding-top:10px;">
+                            <span class="plus">➕</span> 임대 및 매출 수익
+                        </td>
+                        <td class="value-col">
+                            <input type="text" id="inputRevenue_1_2" value="0" class="summary-input" oninput="formatInput(this)" placeholder="자동계산"> 만원
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="label-col"><span class="minus">➖</span> 운영비</td>
+                        <td class="value-col">
+                            <input type="text" id="inputCost_1_2" value="0" class="summary-input" oninput="formatInput(this)" placeholder="자동계산"> 만원
+                        </td>
+                    </tr>
+                    <tr> <td class="label-col"><span class="minus">➖</span> 월 이자비용</td> <td class="value-col" style="color:#e53e3e;"><span id="dispMonthlyInterest_1_2">0</span> 만원</td> </tr>
+                    <tr style="background-color: #edf2f7;">
+                        <td colspan="2" style="text-align: right; padding: 8px 10px; font-size: 0.85rem; color: #4a5568;">
+                            <span style="margin-right:15px;">└ 통합대출금: <strong id="dispTotalLoan_1_2">0만</strong>원</span>
+                            <span>(금리 <input type="number" id="interestRate" value="5.5" step="0.1" style="width:50px;"> %)</span>
+                        </td>
+                    </tr>
+                    <tr class="total-row"> <td>= 월 수익금 (순수익)</td> <td class="value-col" id="dispNetProfit_1_2">0 만원</td> </tr>
+                </table>
             </div>
 
             <div class="card">
-                <h3 class="section-title">2. 매출 및 운영 설정</h3>
+                <h3 class="section-title">2. 매출 설정 (단위: 만원)</h3>
                 <div class="input-group"> <label>객실 수</label> <input type="number" id="roomCount" value="30"> </div>
-                <div class="input-row">
-                    <div class="input-group"> <label>평일 단가(만원)</label> <input type="text" id="weekdayPrice" value="6" oninput="formatInput(this)"> </div>
-                    <div class="input-group"> <label>평일 가동률(%)</label> <input type="number" id="weekdayRate" value="60"> </div>
+                
+                <div style="background:#f7fafc; padding:10px; border-radius:6px; margin-bottom:10px;">
+                    <label style="color:#2b6cb0; font-weight:bold;">🌙 평일 숙박</label>
+                    <div class="input-row">
+                        <div class="input-group"> <label>단가</label> <input type="text" id="weekdayPrice" value="6" oninput="formatInput(this)"> </div>
+                        <div class="input-group"> <label>가동률(%)</label> <input type="number" id="weekdayRate" value="60"> </div>
+                    </div>
                 </div>
-                <div class="input-row">
-                    <div class="input-group"> <label>주말 단가(만원)</label> <input type="text" id="weekendPrice" value="10" oninput="formatInput(this)"> </div>
-                    <div class="input-group"> <label>주말 가동률(%)</label> <input type="number" id="weekendRate" value="90"> </div>
+
+                <div style="background:#f7fafc; padding:10px; border-radius:6px;">
+                    <label style="color:#e53e3e; font-weight:bold;">🔥 주말 숙박</label>
+                    <div class="input-row">
+                        <div class="input-group"> <label>단가</label> <input type="text" id="weekendPrice" value="10" oninput="formatInput(this)"> </div>
+                        <div class="input-group"> <label>가동률(%)</label> <input type="number" id="weekendRate" value="90"> </div>
+                    </div>
                 </div>
-                <hr>
-                <div class="input-group"> <label>월 운영비 (원)</label> <input type="text" id="etcCost" value="13,000,000" oninput="formatInput(this)"> </div>
-                <div class="input-group"> <label>대출 금리 (%)</label> <input type="number" id="interestRate" value="5.5"> </div>
+
+                <div class="revenue-total-box"> 월 매출 총합: <span id="dispTotalRevenueSection2">0</span> 원 </div>
+            </div>
+
+            <div class="card">
+                <h3 class="section-title">3. 운영 비용</h3>
+                <div class="input-group"> <label>월 총 운영비</label> <input type="text" id="etcCost" value="13,000,000" oninput="formatInput(this)"> </div>
+                <div class="cost-total-box"> 월 운영비 총합: <span id="dispTotalOperatingCost">0</span> 원 </div>
             </div>
         </div>
 
         <div class="result-section">
+            
             <div class="card">
-                <h3 class="section-title">📊 분석 리포트</h3>
-                
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-                    <div style="text-align: left;">
-                        <div style="font-size: 0.9rem; color: #718096;">순수익률</div>
-                        <div id="centerTextValue" style="font-size: 1.8rem; font-weight: 800; color: #48bb78;">0%</div>
+                <h3 class="section-title">📊 투자 및 매출 요약</h3>
+                <div class="summary-card">
+                    <h4>자금 스케줄 요약</h4>
+                    <div class="summary-row"> <span>총 사업비용</span> <strong id="resTotalProjectCost">0 만원</strong> </div>
+                    <div class="summary-row"> <span>대출금 합계</span> <span id="resTotalLoan">0 만원</span> </div>
+                    <div class="summary-row total"> <span>실투자금</span> <strong style="color:var(--primary-color);" id="resRealInvest">0 만원</strong> </div>
+                </div>
+
+                <div style="margin-bottom: 15px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 0.9rem; color: #4a5568;">📉 월 수익 구조</h4>
+                    <div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-bottom:15px; border-bottom:1px solid #f7fafc; padding-bottom:10px;">
+                        <span>월 수익금(순수익)</span> <strong style="color:#2b6cb0;" id="dispRevForChart">0 원</strong>
                     </div>
-                    <div style="height: 160px; width: 160px;">
-                        <canvas id="cashFlowChart"></canvas>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div id="centerText" style="flex: 0 0 80px; text-align: left;">
+                            <div style="font-size: 0.85rem; color: #718096; margin-bottom: 4px;">순수익률</div>
+                            <div id="centerTextValue" style="font-size: 1.4rem; font-weight: 800; color: #2d3748;">0%</div>
+                        </div>
+                        <div style="height: 160px; flex: 1; min-width: 0;"> <canvas id="cashFlowChart"></canvas> </div>
                     </div>
                 </div>
 
-                <div style="border-top:1px dashed #e2e8f0; padding-top:15px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <span>월 매출 총합</span> <strong style="color:#1a365d;" id="resTotalRevenue">0 원</strong>
+                <div class="summary-card">
+                    <h4>월 매출 예상</h4>
+                    <div style="display:flex; justify-content:flex-end; align-items:center; gap:5px; font-size:0.9rem; margin-bottom:5px;">
+                        <span style="color:#2b6cb0; font-weight:bold;">평일 <span id="resWeekdaySmall">0</span></span> + <span style="color:#e53e3e; font-weight:bold;">주말 <span id="resWeekendSmall">0</span></span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <span>월 이자비용</span> <strong style="color:#e53e3e;" id="resInterest">0 만원</strong>
+                    <div class="summary-row" style="border-top:1px dashed #e2e8f0; padding-top:10px; margin-top:0; align-items:baseline;">
+                        <span style="font-weight:bold; color:#4a5568;">= 월 매출 총합</span> <strong style="color:#1a365d; font-size:1.6rem;" id="resTotalRevenue">0 원</strong>
                     </div>
+                    <div style="height:250px; margin-top:10px;"> <canvas id="revenueChart"></canvas> </div>
                 </div>
             </div>
 
             <div class="final-result-card">
-                <h3 class="section-title" style="border-bottom:none; margin-bottom:10px;">💰 최종 월 순수익</h3>
+                <h3 class="section-title" style="border-bottom:none; margin-bottom:10px;">💰 최종 월 수익 총합</h3>
+                <div class="final-label">월 순수익 (세전)</div>
                 <div class="final-value" id="resNetProfit">0 원</div>
-                <div class="roi-badge">ROI: <span id="resROI">0.00%</span></div>
-                <div style="margin-top:10px; color:#718096; font-size:0.9rem;" id="paybackPeriod">투자금 회수: -</div>
+                <div style="display:flex; justify-content:center; gap:20px; font-size:0.9rem; color:#4a5568; margin-bottom:15px;">
+                    <div>매출: <span id="resRevSmall">0</span></div> - <div>지출: <span id="resExpSmall" style="color:#e53e3e;">0</span></div>
+                </div>
+                <div class="final-sub" id="paybackPeriod">-</div>
+                <div class="roi-badge"> ROI(수익률): <span id="resROI">0.00%</span> </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. 유틸리티 함수: 콤마 찍기
+        // --- 1. 유틸리티 함수 ---
         function formatInput(input) {
             let value = input.value.replace(/[^0-9]/g, '');
             if (!value) { input.value = ''; return; }
@@ -152,23 +261,32 @@
             const el = document.getElementById(id);
             if(el) el.innerText = new Intl.NumberFormat('ko-KR').format(val);
         }
+        
+        // --- 2. LTV 단순 도우미 (클라이언트용) ---
+        function calcLoanHelper() {
+            const base = getNumber('loanBase');
+            const percent = Number(document.getElementById('loanPercent').value);
+            if(percent > 0) {
+                const val = base * (percent / 100);
+                document.getElementById('calcLoanPreview').innerText = new Intl.NumberFormat('ko-KR').format(val);
+                document.getElementById('loan').value = new Intl.NumberFormat('ko-KR').format(val);
+            }
+        }
 
-        let chartInstance = null;
+        let revenueChartInstance = null;
+        let cashFlowChartInstance = null;
 
-        // 2. 서버 통신 함수 (여기가 핵심!)
+        // --- 3. 서버 호출 함수 (핵심) ---
         async function callServer() {
             const btn = document.querySelector('.server-btn');
             const spinner = document.getElementById('spinner');
-            const btnText = document.getElementById('btnText');
-
-            // 버튼 로딩 상태로 변경
+            
             btn.disabled = true;
-            spinner.style.display = 'block';
-            btnText.innerText = "서버 금고에서 계산 중...";
-            btn.style.opacity = "0.8";
+            spinner.style.display = 'inline-block';
+            document.getElementById('btnText').innerText = "서버 금고에서 계산 중...";
+            btn.style.opacity = '0.8';
 
-            // 보낼 데이터 준비
-            const requestData = {
+            const data = {
                 price: getNumber('price'),
                 loan: getNumber('loan'),
                 areaPyeong: getNumber('areaPyeong'),
@@ -182,81 +300,115 @@
                 weekdayRate: document.getElementById('weekdayRate').value,
                 weekendPrice: getNumber('weekendPrice'),
                 weekendRate: document.getElementById('weekendRate').value,
-                etcCost: getNumber('etcCost')
+                etcCost: getNumber('etcCost'),
+                inputRevenue_1_2: getNumber('inputRevenue_1_2'),
+                inputCost_1_2: getNumber('inputCost_1_2')
             };
 
             try {
-                // 서버로 전송!
                 const res = await fetch('/.netlify/functions/calculate', {
-                    method: 'POST',
-                    body: JSON.stringify(requestData)
+                    method: 'POST', body: JSON.stringify(data)
                 });
-                
-                if(!res.ok) throw new Error("서버 연결 실패");
-                
+                if(!res.ok) throw new Error("Server Error");
                 const result = await res.json();
 
-                // 3. 결과 받아서 화면 업데이트
+                // 1. 자금 스케줄 결과 반영
+                setNumber('dispPrice', getNumber('price')); // 입력값 리플렉션
                 setNumber('dispConstCost', result.constCost);
                 setNumber('dispTax', result.taxCost);
                 setNumber('dispRegFee', result.regFee);
                 setNumber('dispBrokerFee', result.brokerFee);
-                setNumber('dispTotalInvest', result.realInvest); // 만원
-                
-                setNumber('resTotalRevenue', result.totalRevenue); // 원
-                setNumber('resInterest', result.monthlyInterest); // 만원
-                setNumber('resNetProfit', result.netProfit); // 원
+                setNumber('dispTotalProjectCostSection1', result.totalProjectCost);
+                setNumber('dispTotalInvest', result.realInvest);
+
+                // 2. 1-2 섹션 반영
+                if(getNumber('inputRevenue_1_2') === 0) {
+                    document.getElementById('inputRevenue_1_2').value = new Intl.NumberFormat('ko-KR').format(result.totalRevenue / 10000);
+                }
+                setNumber('dispMonthlyInterest_1_2', result.monthlyInterest);
+                setNumber('dispNetProfit_1_2', result.netProfit / 10000);
+                setNumber('dispTotalLoan_1_2', result.totalLoan);
+
+                // 3. 매출/운영비 요약
+                setNumber('dispWeekdayRevenue', result.weekdayRevenue);
+                setNumber('dispWeekendRevenue', result.weekendRevenue);
+                setNumber('dispTotalRevenueSection2', result.totalRevenue);
+                setNumber('dispTotalOperatingCost', result.operatingCost);
+
+                // 4. 결과 리포트
+                setNumber('resTotalProjectCost', result.totalProjectCost);
+                setNumber('resTotalLoan', result.totalLoan);
+                setNumber('resRealInvest', result.realInvest);
+                setNumber('resTotalRevenue', result.totalRevenue);
+                setNumber('resWeekdaySmall', result.weekdayRevenue);
+                setNumber('resWeekendSmall', result.weekendRevenue);
+                setNumber('resNetProfit', result.netProfit);
+                setNumber('resRevSmall', result.totalRevenue / 10000);
+                setNumber('resExpSmall', result.totalExpense / 10000);
                 
                 document.getElementById('resROI').innerText = result.roi + '%';
-                document.getElementById('paybackPeriod').innerText = `투자금 회수: 약 ${result.paybackYears}년`;
+                document.getElementById('paybackPeriod').innerText = `투자금 회수: ${result.paybackYears}년`;
+                
+                setNumber('dispRevForChart', result.netProfit);
+                const profitColor = result.netProfit >= 0 ? '#48bb78' : '#e53e3e';
+                document.getElementById('resNetProfit').style.color = profitColor;
+                document.getElementById('dispRevForChart').style.color = '#2b6cb0'; // 순수익 차트용은 파랑 유지
+                
+                const centerTextValue = document.getElementById('centerTextValue');
+                if(result.totalRevenue > 0) {
+                    centerTextValue.innerText = (result.netProfit / result.totalRevenue * 100).toFixed(1) + '%';
+                } else {
+                    centerTextValue.innerText = '0%';
+                }
+                centerTextValue.style.color = profitColor;
 
-                // 차트 업데이트
-                updateChart(result.netProfit, result.operatingCost, result.interestCost * 10000); // 이자는 만원이므로 *10000
+                // 5. 차트 업데이트
+                updateCharts(result);
 
-                // 수익률 텍스트 업데이트
-                const revenue = result.totalRevenue;
-                const profitRate = revenue > 0 ? (result.netProfit / revenue * 100).toFixed(1) : 0;
-                const centerText = document.getElementById('centerTextValue');
-                centerText.innerText = profitRate + '%';
-                centerText.style.color = result.netProfit >= 0 ? '#48bb78' : '#e53e3e';
-
-            } catch (e) {
-                alert("오류가 발생했습니다: " + e.message);
+            } catch(e) {
+                alert("계산 중 오류가 발생했습니다.");
             } finally {
-                // 버튼 원상복구
                 btn.disabled = false;
                 spinner.style.display = 'none';
-                btnText.innerText = "🚀 서버 정밀 분석 실행";
-                btn.style.opacity = "1";
+                document.getElementById('btnText').innerText = "🚀 서버 정밀 분석 실행 (Click)";
+                btn.style.opacity = '1';
             }
         }
 
-        // 차트 그리기 함수
-        function updateChart(netProfit, operatingCost, interestCost) {
-            const ctx = document.getElementById('cashFlowChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
-
-            let labels, data, colors;
-            if (netProfit >= 0) {
-                labels = ['순수익', '운영비', '이자'];
-                data = [netProfit, operatingCost, interestCost];
-                colors = ['#48bb78', '#a0aec0', '#e53e3e'];
-            } else {
-                labels = ['운영비', '이자'];
-                data = [operatingCost, interestCost];
-                colors = ['#a0aec0', '#e53e3e'];
-            }
-
-            chartInstance = new Chart(ctx, {
+        function updateCharts(data) {
+            // 도넛 차트 (매출 배분)
+            const ctxRev = document.getElementById('revenueChart').getContext('2d');
+            if(revenueChartInstance) revenueChartInstance.destroy();
+            revenueChartInstance = new Chart(ctxRev, {
                 type: 'doughnut',
                 data: {
-                    labels: labels,
-                    datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }]
+                    labels: ['평일', '주말'],
+                    datasets: [{ data: [data.weekdayRevenue, data.weekendRevenue], backgroundColor: ['#2b6cb0', '#e53e3e'], borderWidth: 0 }]
                 },
-                options: {
-                    responsive: true, maintainAspectRatio: false, cutout: '60%',
-                    plugins: { legend: { display: false } }
-                }
+                options: { responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: { legend: { position: 'right' } } }
+            });
+
+            // 캐시플로우 차트
+            const ctxFlow = document.getElementById('cashFlowChart').getContext('2d');
+            if(cashFlowChartInstance) cashFlowChartInstance.destroy();
+            
+            let flowData = [data.netProfit, data.operatingCost, data.monthlyInterest * 10000]; // 이자는 만원단위라 원복
+            let flowColors = ['#48bb78', '#a0aec0', '#e53e3e'];
+            let flowLabels = ['순수익', '운영비', '이자'];
+
+            if(data.netProfit < 0) {
+                flowData = [data.operatingCost, data.monthlyInterest * 10000];
+                flowColors = ['#a0aec0', '#e53e3e'];
+                flowLabels = ['운영비', '이자'];
+            }
+
+            cashFlowChartInstance = new Chart(ctxFlow, {
+                type: 'doughnut',
+                data: {
+                    labels: flowLabels,
+                    datasets: [{ data: flowData, backgroundColor: flowColors, borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: { legend: { display: false } } }
             });
         }
     </script>
