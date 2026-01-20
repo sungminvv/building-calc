@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>빌딩서치 보안 계산기</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        input { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #1a365d; color: white; border: none; cursor: pointer; font-size: 1.1em; }
+        button:hover { background: #2c5282; }
+        .result { margin-top: 20px; padding: 15px; background: #e2e8f0; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="text-align:center;">🔒 빌딩서치 분석기 (Server)</h2>
+        <label>매매가(만원)</label><input type="number" id="price" value="350000">
+        <label>대출금(만원)</label><input type="number" id="loan" value="200000">
+        <label>건축비(만원)</label><input type="number" id="constCost" value="50000">
+        <label>건축대출(만원)</label><input type="number" id="constLoan" value="30000">
+        <label>보증금(만원)</label><input type="number" id="deposit" value="10000">
+        <label>이자율(%)</label><input type="number" id="interestRate" value="5.5">
+        <label>취득세(%)</label><input type="number" id="taxRate" value="4.6">
+        <hr>
+        <label>객실수</label><input type="number" id="roomCount" value="30">
+        <label>평일단가(만원)</label><input type="number" id="weekdayPrice" value="6">
+        <label>평일가동률(%)</label><input type="number" id="weekdayRate" value="60">
+        <label>주말단가(만원)</label><input type="number" id="weekendPrice" value="10">
+        <label>주말가동률(%)</label><input type="number" id="weekendRate" value="90">
+        <label>월운영비(원)</label><input type="number" id="etcCost" value="13000000">
+        
+        <button onclick="calculate()">🚀 분석 실행</button>
+
+        <div class="result" id="resultBox">
+            <p>총 사업비: <strong id="resTotal">0</strong> 만원</p>
+            <p>실 투자금: <strong id="resInvest" style="color:blue;">0</strong> 만원</p>
+            <p>월 순수익: <strong id="resProfit" style="color:red;">0</strong> 원</p>
+            <p>수익률(ROI): <strong id="resRoi">0</strong> %</p>
+        </div>
+    </div>
+
+    <script>
+        async function calculate() {
+            const btn = document.querySelector('button');
+            btn.innerText = "계산 중...";
+            
+            const data = {
+                price: document.getElementById('price').value,
+                loan: document.getElementById('loan').value,
+                constCost: document.getElementById('constCost').value,
+                constLoan: document.getElementById('constLoan').value,
+                deposit: document.getElementById('deposit').value,
+                interestRate: document.getElementById('interestRate').value,
+                taxRate: document.getElementById('taxRate').value,
+                roomCount: document.getElementById('roomCount').value,
+                weekdayPrice: document.getElementById('weekdayPrice').value,
+                weekdayRate: document.getElementById('weekdayRate').value,
+                weekendPrice: document.getElementById('weekendPrice').value,
+                weekendRate: document.getElementById('weekendRate').value,
+                etcCost: document.getElementById('etcCost').value
+            };
+
+            try {
+                const res = await fetch('/.netlify/functions/calculate', {
+                    method: 'POST', body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                
+                document.getElementById('resTotal').innerText = result.totalProjectCost.toLocaleString();
+                document.getElementById('resInvest').innerText = result.realInvest.toLocaleString();
+                document.getElementById('resProfit').innerText = result.netProfit.toLocaleString();
+                document.getElementById('resRoi').innerText = result.roi;
+                document.getElementById('resultBox').style.display = 'block';
+            } catch (e) {
+                alert("오류 발생");
+            }
+            btn.innerText = "🚀 분석 실행";
+        }
+    </script>
+</body>
+</html>
